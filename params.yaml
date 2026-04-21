@@ -1,11 +1,19 @@
-train:
+prepare:
   data_path: data/raw/medical_intent_dataset.csv
-  model_name: baseline_nb
-  model_out: models/baseline_nb.joblib
-  split_out: data/processed
+  train_out: data/processed/train.csv
+  test_out: data/processed/test.csv
+  summary_out: data/processed/dataset_summary.json
+  test_size: 0.25
+
+train:
+  train_path: data/processed/train.csv
+  model_dir: models
+  tfidf_max_features: 4000
+  tfidf_ngram_max: 2
+  svd_components: 100
+  pca_components: 100
+  logistic_max_iter: 2000
 
 evaluate:
-  model_path: models/baseline_nb.joblib
   test_path: data/processed/test.csv
-  metrics_out: documentation/evaluation_metrics.json
-  figure_out: documentation/confusion_matrix.png
+  model_dir: models

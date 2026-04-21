@@ -1,28 +1,52 @@
 stages:
+  prepare:
+    cmd: ./.venv/bin/python -m src.data_processing --data-path ${prepare.data_path} --train-out ${prepare.train_out} --test-out ${prepare.test_out} --summary-out ${prepare.summary_out} --test-size ${prepare.test_size}
+    deps:
+      - src/data_processing.py
+      - src/config.py
+      - src/utils.py
+      - ${prepare.data_path}
+    params:
+      - prepare
+    outs:
+      - ${prepare.train_out}
+      - ${prepare.test_out}
+      - ${prepare.summary_out}
+
   train:
-    cmd: python -m src.train --data-path ${train.data_path} --model-name ${train.model_name} --model-out ${train.model_out} --split-out ${train.split_out}
+    cmd: ./.venv/bin/python -m src.train --train-path ${train.train_path} --model-dir ${train.model_dir} --tfidf-max-features ${train.tfidf_max_features} --tfidf-ngram-max ${train.tfidf_ngram_max} --svd-components ${train.svd_components} --pca-components ${train.pca_components} --logistic-max-iter ${train.logistic_max_iter}
     deps:
       - src/train.py
-      - src/data_processing.py
-      - ${train.data_path}
+      - src/config.py
+      - src/utils.py
+      - ${train.train_path}
     params:
       - train
     outs:
-      - ${train.model_out}
-      - data/processed/train.csv
-      - data/processed/test.csv
+      - models/baseline_nb.joblib
+      - models/svd_logreg.joblib
+      - models/pca_logreg.joblib
       - models/baseline_nb.metadata.json
+      - models/svd_logreg.metadata.json
+      - models/pca_logreg.metadata.json
+      - models/training_summary.json
 
   evaluate:
-    cmd: python -m src.evaluate --model-path ${evaluate.model_path} --test-path ${evaluate.test_path} --metrics-out ${evaluate.metrics_out} --figure-out ${evaluate.figure_out}
+    cmd: ./.venv/bin/python -m src.evaluate --test-path ${evaluate.test_path} --model-dir ${evaluate.model_dir}
     deps:
       - src/evaluate.py
-      - src/data_processing.py
-      - ${evaluate.model_path}
+      - src/config.py
       - ${evaluate.test_path}
+      - models/baseline_nb.joblib
+      - models/svd_logreg.joblib
+      - models/pca_logreg.joblib
     params:
       - evaluate
     metrics:
-      - ${evaluate.metrics_out}
+      - documentation/evaluation_metrics.json
     outs:
-      - ${evaluate.figure_out}
+      - documentation/model_comparison.csv
+      - documentation/model_comparison.md
+      - documentation/confusion_matrix_baseline_nb.png
+      - documentation/confusion_matrix_svd_logreg.png
+      - documentation/confusion_matrix_pca_logreg.png

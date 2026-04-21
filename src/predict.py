@@ -1,185 +1,141 @@
 from __future__ import annotations
 
 import argparse
-import os
-from typing import Dict
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
 
+import joblib
 import numpy as np
-from dotenv import load_dotenv
-from openai import OpenAI
-from sklearn.metrics.pairwise import cosine_similarity
 
-from src.data_processing import DEFAULT_RESPONSES_PATH, load_artifact, load_response_templates
-from src.utils import detect_language, translate_text
+from src.config import get_config
+from src.dialogue_manager import DialogueManager
+from src.response_generator import SAFETY_NOTICE, generate_controlled_response
+from src.retrieval import KnowledgeRetriever
+from src.translation import TranslationResult, detect_language, translate_text
+from src.utils import load_json
 
-load_dotenv()
-
-try:
-    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-except Exception:
-    client = None
-
-# Confidence threshold for intent prediction (0.0 - 1.0)
-# If the model's confidence is below this, the chatbot will return a fallback message
-CONFIDENCE_THRESHOLD = 0.5
-
-# Fallback message for out-of-scope or low-confidence queries
-FALLBACK_MESSAGE = "Sorry, this question is currently not supported by MediChat."
+UNSUPPORTED_MESSAGE = (
+    "I can only answer supported, general medical information questions in this course project. "
+    "Please rephrase the question or ask a healthcare professional for personalized advice."
+)
 
 
-def predict_intent_with_confidence(
-    text: str,
-    model_path: str = 'models/baseline_nb.joblib',
-    threshold: float = CONFIDENCE_THRESHOLD,
-    use_similarity_check: bool = False
-) -> tuple[str | None, float]:
-    """
-    Predict intent with confidence score using predict_proba().
-    
-    Args:
-        text: Input text (should be in English)
-        model_path: Path to the trained model
-        threshold: Confidence threshold (0-1). If prediction confidence < threshold,
-                   returns None to trigger fallback message
-        use_similarity_check: If True, also checks TF-IDF vector similarity with
-                             training data to detect out-of-scope questions
-    
-    Returns:
-        Tuple of (intent_label, confidence_score)
-        If confidence < threshold, returns (None, confidence_score)
-    """
-    model = load_artifact(model_path)
-    
-    # Get prediction probabilities for all classes
-    proba = model.predict_proba([text])[0]
-    
-    # Get the highest probability and its corresponding class index
-    max_confidence = np.max(proba)
-    predicted_idx = np.argmax(proba)
-    predicted_intent = model.classes_[predicted_idx]
-    
-    print(f"---Model confidence: {max_confidence:.4f} (threshold: {threshold})")
-    print(f"---All class probabilities: {dict(zip(model.classes_, proba))}")
-    
-    # Optional: Cosine similarity check with training data
-    if use_similarity_check:
-        try:
-            # Get TF-IDF vectorizer from the pipeline
-            vectorizer = model.named_steps['tfidf']
-            
-            # Transform the input text
-            user_vector = vectorizer.transform([text])
-            
-            # If we have access to training vectors (would need to save them),
-            # compute average cosine similarity. For now, we'll use a simple heuristic:
-            # Check if the TF-IDF vector is sparse (few non-zero features = out of domain)
-            sparsity = 1 - (user_vector.nnz / (user_vector.shape[0] * user_vector.shape[1]))
-            print(f"---TF-IDF sparsity: {sparsity:.2%} (higher = more out-of-domain)")
-        except Exception as e:
-            print(f"---Similarity check failed: {e}")
-    
-    # Return None if confidence below threshold (triggers fallback response)
-    if max_confidence < threshold:
-        print(f"---Confidence {max_confidence:.4f} below threshold {threshold}")
-        return None, max_confidence
-    
-    return predicted_intent, max_confidence
+@dataclass
+class PredictionArtifacts:
+    model: Any
+    responses: dict[str, str]
+    retriever: KnowledgeRetriever
+    dialogue_manager: DialogueManager
 
 
-def predict_intent(
-    text: str,
-    model_path: str = 'models/baseline_nb.joblib',
-    responses_path: str = str(DEFAULT_RESPONSES_PATH),
-    confidence_threshold: float = CONFIDENCE_THRESHOLD
-) -> Dict[str, str | float]:
-    """
-    Main prediction function with confidence-based fallback mechanism.
-    
-    Args:
-        text: Input text for prediction
-        model_path: Path to the trained model
-        responses_path: Path to response templates
-        confidence_threshold: Confidence threshold for accepting predictions
-    
-    Returns:
-        Dictionary containing language, english_text, intent, response, 
-        english_response, and confidence_score
-    """
-    print(f"\n===Predicting text: {text}")
-
-    model = load_artifact(model_path)
-    responses = load_response_templates(responses_path)
-
-    language = detect_language(text)
-    print(f"---Detected language: {language}")
-    
-    english_text = translate_text(text, 'en') if language != 'en' else text
-    print(f"---English translation: {english_text}")
-    
-    # Use confidence-based prediction instead of direct predict()
-    intent, confidence = predict_intent_with_confidence(
-        english_text,
-        model_path=model_path,
-        threshold=confidence_threshold,
-        use_similarity_check=False
-    )
-    
-    # If intent is None (confidence below threshold), use fallback message
-    if intent is None:
-        english_response = FALLBACK_MESSAGE
-    else:
-        english_response = responses.get(
-            intent,
-            'I can only support basic non-emergency medical information at the moment.'
+class MediChatEngine:
+    def __init__(self, model_name: str = "baseline_nb") -> None:
+        config = get_config()
+        model_path = config.model_artifact_path(model_name)
+        if not Path(model_path).exists():
+            raise FileNotFoundError(
+                f"Model artifact not found at {model_path}. Run the training pipeline before launching the app."
+            )
+        self.config = config
+        self.artifacts = PredictionArtifacts(
+            model=joblib.load(model_path),
+            responses=load_json(config.responses_path),
+            retriever=KnowledgeRetriever(str(config.knowledge_base_path)),
+            dialogue_manager=DialogueManager(),
         )
-    
-    final_response = translate_text(english_response, language) if language != 'en' else english_response
 
-    return {
-        'language': language,
-        'english_text': english_text,
-        'intent': intent if intent is not None else 'unknown',
-        'response': final_response,
-        'english_response': english_response,
-        'confidence_score': float(confidence),
-    }
+    def classify(self, english_text: str) -> tuple[str, float]:
+        probabilities = self.artifacts.model.predict_proba([english_text])[0]
+        best_index = int(np.argmax(probabilities))
+        return str(self.artifacts.model.classes_[best_index]), float(probabilities[best_index])
+
+    def process_message(
+        self,
+        user_text: str,
+        *,
+        session_id: str | None = None,
+    ) -> dict[str, Any]:
+        source_language = detect_language(user_text)
+        to_english: TranslationResult
+        if source_language == "en":
+            to_english = TranslationResult(
+                text=user_text.strip(),
+                translated=False,
+                source_language="en",
+                target_language="en",
+                provider="local",
+            )
+        else:
+            to_english = translate_text(user_text, "en", source_language=source_language)
+
+        context = self.artifacts.dialogue_manager.get_context(session_id, language=source_language)
+        contextual_query = self.artifacts.dialogue_manager.build_query(to_english.text, context.history)
+        intent, confidence = self.classify(contextual_query)
+        retrieved = self.artifacts.retriever.retrieve(contextual_query, intent=intent)
+
+        supported = confidence >= self.config.confidence_threshold and retrieved.score >= self.config.retrieval_threshold
+        if supported:
+            fallback_message = self.artifacts.responses.get(intent, UNSUPPORTED_MESSAGE)
+            english_response = generate_controlled_response(
+                intent=intent,
+                user_question=to_english.text,
+                context_items=retrieved.entries,
+                conversation_history=context.history,
+                fallback_message=fallback_message,
+            )
+        else:
+            intent = "unsupported"
+            english_response = f"{UNSUPPORTED_MESSAGE}\n\n{SAFETY_NOTICE}"
+
+        translated_response = (
+            translate_text(english_response, source_language, source_language="en").text
+            if source_language != "en"
+            else english_response
+        )
+
+        self.artifacts.dialogue_manager.database.log_message(
+            context.session_id,
+            role="user",
+            original_text=user_text,
+            english_text=to_english.text,
+            language=source_language,
+            metadata={"contextual_query": contextual_query},
+        )
+        self.artifacts.dialogue_manager.database.log_message(
+            context.session_id,
+            role="assistant",
+            original_text=translated_response,
+            english_text=english_response,
+            language=source_language,
+            intent=intent,
+            confidence=confidence,
+            metadata={
+                "retrieval_score": retrieved.score,
+                "retrieved_titles": [entry["title"] for entry in retrieved.entries],
+                "supported": supported,
+            },
+        )
+
+        return {
+            "session_id": context.session_id,
+            "language": source_language,
+            "english_text": to_english.text,
+            "intent": intent,
+            "confidence": confidence,
+            "retrieval_score": retrieved.score,
+            "supported": supported,
+            "response": translated_response,
+            "english_response": english_response,
+            "english_translation": english_response if source_language != "en" else "",
+            "retrieved_context": retrieved.entries,
+        }
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Predict a MediChat intent label from text.')
-    parser.add_argument('text', help='Input text for prediction.')
-    parser.add_argument('--model-path', default='models/baseline_nb.joblib',
-                        help='Path to the trained model')
-    parser.add_argument('--threshold', type=float, default=CONFIDENCE_THRESHOLD,
-                        help=f'Confidence threshold for accepting predictions (default: {CONFIDENCE_THRESHOLD})')
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Run a single MediChat prediction.")
+    parser.add_argument("text")
+    parser.add_argument("--model-name", default="baseline_nb")
     args = parser.parse_args()
-
-    result = predict_intent(args.text, model_path=args.model_path, confidence_threshold=args.threshold)
-    
-    # Pretty print results
-    print("\n" + "="*60)
-    print("PREDICTION RESULTS")
-    print("="*60)
-    print(f"Detected Language: {result['language']}")
-    print(f"Intent: {result['intent']}")
-    print(f"Confidence Score: {result['confidence_score']:.4f}")
-    print()
-    
-    # Show Original → English → Response flow for non-English input
-    if result['language'] != 'en':
-        print("📝 Original Input:")
-        print(f"   {args.text}")
-        print()
-        print("🔤 English Translation:")
-        print(f"   {result['english_text']}")
-        print()
-        print("💬 English Response:")
-        print(f"   {result['english_response']}")
-        print()
-        print("🌐 Final Response (translated):")
-        print(f"   {result['response']}")
-    else:
-        print("💬 Response:")
-        print(f"   {result['response']}")
-    
-    print("="*60)
+    engine = MediChatEngine(model_name=args.model_name)
+    print(engine.process_message(args.text))

@@ -1,6 +1,6 @@
 {
-  "Symptom Inquiry": "This sounds like a general respiratory symptom question. I can share basic information about common cold, flu-like symptoms, sore throat, cough, congestion, and what symptoms should be monitored.",
-  "Self-Care Advice": "For mild respiratory symptoms, self-care may include rest, hydration, warm fluids, and monitoring whether symptoms improve. If symptoms get worse, professional care is recommended.",
-  "Medication Question": "I can provide general information about common over-the-counter options, but I do not replace a doctor or pharmacist. Please check dosage instructions and seek professional advice if you are unsure.",
-  "Seek Medical Help": "This may need medical attention. If breathing becomes difficult, chest pain appears, or symptoms become severe, please contact a healthcare professional or urgent care service."
+  "Symptom Inquiry": "I can share general information about common respiratory symptoms, but I cannot confirm what condition you have.",
+  "Self-Care Advice": "I can give general self-care guidance for mild symptoms using the supported course-project knowledge base.",
+  "Medication Question": "I can provide general medication safety information only. I cannot tell you what you personally should take.",
+  "Seek Medical Help": "I can share general warning signs that suggest contacting a clinician or urgent care, without diagnosing the cause."
 }

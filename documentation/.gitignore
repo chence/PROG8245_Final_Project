@@ -1,0 +1,6 @@
+/model_comparison.csv
+/model_comparison.md
+/confusion_matrix_baseline_nb.png
+/confusion_matrix_svd_logreg.png
+/confusion_matrix_pca_logreg.png
+/evaluation_metrics.json

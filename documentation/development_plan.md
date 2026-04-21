@@ -1,67 +1,38 @@
 # Development Plan
 
-## Introduction
-MediChat is a team-based academic chatbot project focused on multilingual and audio/text medical question support. The project will be developed in small, testable stages so that the team can demonstrate progress early and reduce integration risk.
+## Goal
 
-## Use Cases
+Upgrade the original intent-classification prototype into a final demonstrable system that combines classical NLP, multilingual handling, safe conversational response generation, and reproducible ML operations.
 
-### Use Case 1 - Symptom Inquiry
-A user types: `I have a headache and fever. What could it be?`
-The system classifies the question as a symptom-related intent and returns general information.
+## Completed Upgrade Areas
 
-### Use Case 2 - Self-Care Advice
-A user asks: `What should I do for a sore throat?`
-The system returns common self-care guidance such as hydration, rest, and monitoring symptoms.
+1. Refactored the codebase into modular backend services.
+2. Added a Gradio chat UI with session state and audio input.
+3. Added SQLite persistence for conversations.
+4. Added retrieval-based controlled generation.
+5. Expanded the ML workflow to train and compare three required models.
+6. Added DVC stages for prepare, train, and evaluate.
 
-### Use Case 3 - Medication Question
-A user asks: `Can I take cough syrup for a dry cough?`
-The chatbot provides general educational information and reminds the user to check professional guidance.
+## Remaining Team Tasks
 
-### Use Case 4 - Multilingual Interaction
-A user asks in Chinese or Spanish. The system detects the language, translates the question, predicts the intent, and translates the response back.
+1. Replace or extend the current medical intent dataset with a larger real-world dataset if the team has time and approval.
+2. Add more multilingual manual testing across target languages.
+3. Expand the retrieval knowledge base with more medically reviewed educational snippets.
+4. Record demo screenshots or a short demo video for presentation use.
 
-## Development Roadmap
+## Recommended Demo Story
 
-### Phase 1 - Repository Setup
-- create the project folder structure
-- initialize Git and DVC
-- upload to GitHub
-- keep the original prototype notebook in `notebooks/`
+1. Show `dvc repro` to demonstrate reproducibility.
+2. Show model comparison outputs in `documentation/model_comparison.md`.
+3. Launch the app and ask an English text question.
+4. Ask a follow-up question to demonstrate multi-turn handling.
+5. Ask a non-English question to demonstrate translation behavior.
+6. Use audio input to demonstrate speech-to-text.
+7. Ask an unsupported question to show safe fallback behavior.
 
-### Phase 2 - Baseline Model
-- build a small curated dataset
-- train TF-IDF + Naive Bayes
-- support command-line or simple web testing
+## Practical Scope Decisions
 
-### Phase 3 - Multilingual Support
-- detect user language
-- translate non-English input into English
-- translate output back to the original language
-
-### Phase 4 - Real Medical Dataset
-- integrate the HPAI-BSC medical-specialities dataset
-- clean the data
-- retrain the baseline and comparison models
-
-### Phase 5 - Evaluation
-- produce confusion matrices
-- compare precision, recall, and F1-score
-- identify difficult intents and error patterns
-
-### Phase 6 - Application Layer
-- build a Gradio or Streamlit web page
-- add audio input support
-- improve user experience and response formatting
-
-### Phase 7 - Model Comparison
-- evaluate baseline Naive Bayes
-- evaluate SVD + Logistic Regression
-- evaluate PCA + Logistic Regression
-- visualize model comparison results
-
-## Team Deliverables
-- working repository with DVC tracking
-- prototype notebook archive
-- runnable source code
-- baseline evaluation outputs
-- pitch, architecture, and development documentation
+- Use Gradio instead of Streamlit to keep the chat UI simple and fast to demo.
+- Keep SQLite lightweight instead of adding a server database.
+- Use retrieval plus controlled generation instead of unrestricted LLM chat.
+- Keep the baseline classifier as the main runtime model to preserve course alignment.

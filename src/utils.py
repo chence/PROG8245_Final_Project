@@ -1,177 +1,73 @@
-"""
-Utility functions for language detection and translation.
-"""
 from __future__ import annotations
 
-import os
+import json
+import re
+import uuid
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
 
-from dotenv import load_dotenv
-from langdetect import detect
-from openai import OpenAI
-
-load_dotenv()
-
-# Initialize OpenAI client
-try:
-    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-except Exception:
-    client = None
-
-# Language detection method: 'langdetect' (fast, local) or 'openai' (accurate, requires API)
-LANGUAGE_DETECTION_METHOD = 'langdetect'  # Change to 'openai' if you prefer
+from sklearn.base import BaseEstimator, TransformerMixin
 
 
-def detect_language_openai(text: str) -> str:
-    """
-    Detect language using OpenAI API for higher accuracy.
-    Returns ISO 639-1 language code (e.g., 'en', 'zh', 'hi', 'tr', 'pt')
-    """
-    if client is None:
-        print("---OpenAI client not available, falling back to langdetect")
-        return detect_language_langdetect(text)
-    
-    try:
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {
-                    "role": "system",
-                    "content": "You are a language detector. Respond with ONLY the ISO 639-1 language code (e.g., 'en', 'zh', 'hi', 'fr', 'es', 'de', 'pt', 'tr', 'ja', 'ko', 'ru'). No other text."
-                },
-                {
-                    "role": "user",
-                    "content": f"What language is this text in? Text: {text}"
-                }
-            ],
-            temperature=0.1,
-        )
-        detected = response.choices[0].message.content.strip().lower()
-        print(f"---OpenAI detected language: {detected}")
-        return detected
-    except Exception as e:
-        print(f"---OpenAI language detection error: {e}, falling back to langdetect")
-        return detect_language_langdetect(text)
+def ensure_directory(path: str | Path) -> Path:
+    directory = Path(path)
+    directory.mkdir(parents=True, exist_ok=True)
+    return directory
 
 
-def detect_language_langdetect(text: str) -> str:
-    """
-    Detect language using langdetect library with heuristics.
-    Uses CJK and Devanagari character detection for improved accuracy.
-    """
-    try:
-        # Check for Chinese characters (CJK Unified Ideographs)
-        chinese_count = sum(1 for c in text if '\u4e00' <= c <= '\u9fff')
-        # Check for Korean characters (Hangul)
-        korean_count = sum(1 for c in text if '\uac00' <= c <= '\ud7af' or '\u1100' <= c <= '\u11ff')
-        # Check for Japanese characters (Hiragana + Katakana)
-        japanese_count = sum(1 for c in text if '\u3040' <= c <= '\u309f' or '\u30a0' <= c <= '\u30ff')
-        # Check for Devanagari (Hindi, Sanskrit, etc.)
-        devanagari_count = sum(1 for c in text if '\u0900' <= c <= '\u097f')
-        # Check for Arabic
-        arabic_count = sum(1 for c in text if '\u0600' <= c <= '\u06ff')
-        
-        total_cjk = chinese_count + korean_count + japanese_count
-        
-        # If we have CJK characters, use heuristics
-        if total_cjk > 0:
-            if chinese_count > korean_count and chinese_count > japanese_count:
-                return 'zh'
-            elif korean_count > chinese_count and korean_count > japanese_count:
-                return 'ko'
-            elif japanese_count > chinese_count and japanese_count > korean_count:
-                return 'ja'
-        
-        # If we have Devanagari characters, return Hindi
-        if devanagari_count > 0:
-            return 'hi'
-        
-        # If we have Arabic characters, return Arabic
-        if arabic_count > 0:
-            return 'ar'
-        
-        # Check for common English medical words before relying on langdetect
-        english_medical_words = {'what', 'where', 'when', 'how', 'why', 'is', 'are', 'the', 'a', 'and', 'or', 'have', 'i', 'me', 'my', 'do', 'can', 'will', 'should', 'could', 'would', 'treat', 'diabetes', 'symptoms', 'help', 'pain', 'fever', 'cough', 'sore', 'medical', 'health', 'medicine', 'doctor', 'hospital', 'patient', 'disease'}
-        text_lower = text.lower()
-        english_word_count = sum(1 for word in english_medical_words if word in text_lower)
-        
-        # Fall back to langdetect for non-CJK, non-Devanagari, non-Arabic text
-        detected = detect(text)
-        
-        # If langdetect detected English, verify with medical word check
-        if detected == 'en':
-            if english_word_count >= 1:  # At least one English medical word
-                return 'en'
-            else:
-                # If no English words found but detected as 'en', likely false positive
-                return detected
-        
-        # For other languages, trust langdetect's detection
-        return detected
-    except Exception as e:
-        print(f"---Langdetect error: {e}")
-        return 'en'
+def ensure_parent(path: str | Path) -> Path:
+    file_path = Path(path)
+    file_path.parent.mkdir(parents=True, exist_ok=True)
+    return file_path
 
 
-def detect_language(text: str) -> str:
-    """
-    Detect the language of the input text.
-    Uses the method specified by LANGUAGE_DETECTION_METHOD constant.
-    
-    Args:
-        text: Input text to detect language for
-        
-    Returns:
-        ISO 639-1 language code (e.g., 'en', 'zh', 'hi', 'tr', 'pt')
-    """
-    if LANGUAGE_DETECTION_METHOD == 'openai':
-        return detect_language_openai(text)
-    else:
-        return detect_language_langdetect(text)
+def load_json(path: str | Path) -> Any:
+    with open(path, "r", encoding="utf-8") as handle:
+        return json.load(handle)
 
 
-def translate_text(text: str, dest: str) -> str:
-    """
-    Translate text to the destination language using OpenAI API.
-    
-    Args:
-        text: Text to translate
-        dest: Destination language code (e.g., 'en', 'zh', 'hi', 'tr', 'pt')
-        
-    Returns:
-        Translated text, or original text if translation fails or client is unavailable
-    """
-    if client is None:
-        return text
-    try:
-        # Map language codes to full language names for better translation
-        # Handles both simple codes (zh, en) and full locale codes (zh-cn, en-us)
-        language_map = {
-            'en': 'English',
-            'zh': 'Chinese',
-            'zh-cn': 'Simplified Chinese',
-            'zh-tw': 'Traditional Chinese',
-            'es': 'Spanish',
-            'fr': 'French',
-            'de': 'German',
-            'ja': 'Japanese',
-            'ko': 'Korean',
-            'pt': 'Portuguese',
-            'pt-br': 'Brazilian Portuguese',
-            'ru': 'Russian',
-            'ar': 'Arabic',
-            'hi': 'Hindi',
-            'tr': 'Turkish',
-        }
-        dest_lang = language_map.get(dest.lower(), dest)
+def save_json(data: Any, path: str | Path) -> None:
+    target = ensure_parent(path)
+    with open(target, "w", encoding="utf-8") as handle:
+        json.dump(data, handle, indent=2, ensure_ascii=False)
 
-        prompt = f"Translate this text to {dest_lang}: {text}"
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[{"role": "user", "content": prompt}]
-        )
-        translated = response.choices[0].message.content
-        print(f"---Translation to {dest_lang}: {translated}")
-        return translated
-    except Exception as e:
-        print(f"---Translation error ({dest}): {e}")
-        return text
+
+def save_text(text: str, path: str | Path) -> None:
+    target = ensure_parent(path)
+    with open(target, "w", encoding="utf-8") as handle:
+        handle.write(text)
+
+
+def normalize_whitespace(text: str) -> str:
+    return re.sub(r"\s+", " ", str(text)).strip()
+
+
+def clean_text(text: str) -> str:
+    normalized = normalize_whitespace(text).lower()
+    normalized = re.sub(r"[^a-z0-9\s'?.!,/-]", " ", normalized)
+    normalized = re.sub(r"\s+", " ", normalized).strip()
+    return normalized
+
+
+def utc_timestamp() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def new_session_id() -> str:
+    return uuid.uuid4().hex
+
+
+def compact_text(text: str, max_chars: int = 800) -> str:
+    cleaned = normalize_whitespace(text)
+    if len(cleaned) <= max_chars:
+        return cleaned
+    return f"{cleaned[: max_chars - 3]}..."
+
+
+class DenseTransformer(BaseEstimator, TransformerMixin):
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X):
+        return X.toarray() if hasattr(X, "toarray") else X

@@ -1,0 +1,163 @@
+schema: '2.0'
+stages:
+  prepare:
+    cmd: ./.venv/bin/python -m src.data_processing --data-path 
+      data/raw/medical_intent_dataset.csv --train-out data/processed/train.csv 
+      --test-out data/processed/test.csv --summary-out 
+      data/processed/dataset_summary.json --test-size 0.25
+    deps:
+    - path: data/raw/medical_intent_dataset.csv
+      hash: md5
+      md5: f44a76ed991e0409553f83d609d9eb01
+      size: 56992
+    - path: src/config.py
+      hash: md5
+      md5: 0c8433410b2551a99c4f79aaa6e1ef30
+      size: 2178
+    - path: src/data_processing.py
+      hash: md5
+      md5: 3c0846ec519808573286e086ba351ccb
+      size: 2870
+    - path: src/utils.py
+      hash: md5
+      md5: b356cdd9d5446d561d422768de103ece
+      size: 1883
+    params:
+      params.yaml:
+        prepare:
+          data_path: data/raw/medical_intent_dataset.csv
+          train_out: data/processed/train.csv
+          test_out: data/processed/test.csv
+          summary_out: data/processed/dataset_summary.json
+          test_size: 0.25
+    outs:
+    - path: data/processed/dataset_summary.json
+      hash: md5
+      md5: f8c9dc29b05f2b4abcd7ceada3217d16
+      size: 328
+    - path: data/processed/test.csv
+      hash: md5
+      md5: 28bab01b16fa59913d81f1a1509fefd9
+      size: 14092
+    - path: data/processed/train.csv
+      hash: md5
+      md5: 214de66457480a5094f8255ca32421e6
+      size: 42310
+  train:
+    cmd: ./.venv/bin/python -m src.train --train-path data/processed/train.csv 
+      --model-dir models --tfidf-max-features 4000 --tfidf-ngram-max 2 
+      --svd-components 100 --pca-components 100 --logistic-max-iter 2000
+    deps:
+    - path: data/processed/train.csv
+      hash: md5
+      md5: 214de66457480a5094f8255ca32421e6
+      size: 42310
+    - path: src/config.py
+      hash: md5
+      md5: 0c8433410b2551a99c4f79aaa6e1ef30
+      size: 2178
+    - path: src/train.py
+      hash: md5
+      md5: bfb13607030158585ae32d053b261a83
+      size: 4448
+    - path: src/utils.py
+      hash: md5
+      md5: b356cdd9d5446d561d422768de103ece
+      size: 1883
+    params:
+      params.yaml:
+        train:
+          train_path: data/processed/train.csv
+          model_dir: models
+          tfidf_max_features: 4000
+          tfidf_ngram_max: 2
+          svd_components: 100
+          pca_components: 100
+          logistic_max_iter: 2000
+    outs:
+    - path: models/baseline_nb.joblib
+      hash: md5
+      md5: 700e95c33426a18632591821a7ff95ab
+      size: 55777
+    - path: models/baseline_nb.metadata.json
+      hash: md5
+      md5: 62dd9ea8dcc1af79f459cc1ad73dd6b6
+      size: 380
+    - path: models/pca_logreg.joblib
+      hash: md5
+      md5: 0b228d3bd6135234fd03657e71ae0019
+      size: 443756
+    - path: models/pca_logreg.metadata.json
+      hash: md5
+      md5: 192869bffb182d7fd2f540f642783ff3
+      size: 378
+    - path: models/svd_logreg.joblib
+      hash: md5
+      md5: 4110c89856ace44ea5e6ac71cd1f8702
+      size: 439436
+    - path: models/svd_logreg.metadata.json
+      hash: md5
+      md5: 7676777b3824ec10412977fddcb9aa9f
+      size: 378
+    - path: models/training_summary.json
+      hash: md5
+      md5: da9d7f2f413f1fd9520c4566ab28aa98
+      size: 1378
+  evaluate:
+    cmd: ./.venv/bin/python -m src.evaluate --test-path data/processed/test.csv 
+      --model-dir models
+    deps:
+    - path: data/processed/test.csv
+      hash: md5
+      md5: 28bab01b16fa59913d81f1a1509fefd9
+      size: 14092
+    - path: models/baseline_nb.joblib
+      hash: md5
+      md5: 700e95c33426a18632591821a7ff95ab
+      size: 55777
+    - path: models/pca_logreg.joblib
+      hash: md5
+      md5: 0b228d3bd6135234fd03657e71ae0019
+      size: 443756
+    - path: models/svd_logreg.joblib
+      hash: md5
+      md5: 4110c89856ace44ea5e6ac71cd1f8702
+      size: 439436
+    - path: src/config.py
+      hash: md5
+      md5: 0c8433410b2551a99c4f79aaa6e1ef30
+      size: 2178
+    - path: src/evaluate.py
+      hash: md5
+      md5: 2c55b0b63ddb118e164d47d5c479c079
+      size: 3687
+    params:
+      params.yaml:
+        evaluate:
+          test_path: data/processed/test.csv
+          model_dir: models
+    outs:
+    - path: documentation/confusion_matrix_baseline_nb.png
+      hash: md5
+      md5: e3fb6c473294fa2e71d48dea89bbb008
+      size: 55513
+    - path: documentation/confusion_matrix_pca_logreg.png
+      hash: md5
+      md5: 0546eb662bfd1ac2854e4a398f0c52b9
+      size: 55858
+    - path: documentation/confusion_matrix_svd_logreg.png
+      hash: md5
+      md5: 74f8e10e1ee35eb551f6f6a4b157bc89
+      size: 55970
+    - path: documentation/evaluation_metrics.json
+      hash: md5
+      md5: 0ccda48d47e0c915c390489305d84d17
+      size: 4786
+    - path: documentation/model_comparison.csv
+      hash: md5
+      md5: 80bcffbbc123df0a85670d40a6692eb7
+      size: 244
+    - path: documentation/model_comparison.md
+      hash: md5
+      md5: 29c53f395c7dbaf966c1bd4f78794983
+      size: 442
