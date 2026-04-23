@@ -1,0 +1,17 @@
+{
+  "raw_rows": 593,
+  "train_rows": 444,
+  "test_rows": 149,
+  "labels": [
+    "Medication Question",
+    "Seek Medical Help",
+    "Self-Care Advice",
+    "Symptom Inquiry"
+  ],
+  "class_distribution": {
+    "Medication Question": 148,
+    "Seek Medical Help": 147,
+    "Self-Care Advice": 144,
+    "Symptom Inquiry": 154
+  }
+}

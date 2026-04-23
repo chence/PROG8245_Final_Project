@@ -1,0 +1,58 @@
+{
+  "models": [
+    {
+      "model_name": "baseline_nb",
+      "artifact_path": "D:\\Desktop\\8010\\PROG8245_CSCN8010_Final_Project\\models\\baseline_nb.joblib",
+      "train_rows": 444,
+      "labels": [
+        "Medication Question",
+        "Seek Medical Help",
+        "Self-Care Advice",
+        "Symptom Inquiry"
+      ],
+      "params": {
+        "tfidf_max_features": 4000,
+        "tfidf_ngram_max": 2,
+        "svd_components": 100,
+        "pca_components": 100,
+        "logistic_max_iter": 2000
+      }
+    },
+    {
+      "model_name": "svd_logreg",
+      "artifact_path": "D:\\Desktop\\8010\\PROG8245_CSCN8010_Final_Project\\models\\svd_logreg.joblib",
+      "train_rows": 444,
+      "labels": [
+        "Medication Question",
+        "Seek Medical Help",
+        "Self-Care Advice",
+        "Symptom Inquiry"
+      ],
+      "params": {
+        "tfidf_max_features": 4000,
+        "tfidf_ngram_max": 2,
+        "svd_components": 100,
+        "pca_components": 100,
+        "logistic_max_iter": 2000
+      }
+    },
+    {
+      "model_name": "pca_logreg",
+      "artifact_path": "D:\\Desktop\\8010\\PROG8245_CSCN8010_Final_Project\\models\\pca_logreg.joblib",
+      "train_rows": 444,
+      "labels": [
+        "Medication Question",
+        "Seek Medical Help",
+        "Self-Care Advice",
+        "Symptom Inquiry"
+      ],
+      "params": {
+        "tfidf_max_features": 4000,
+        "tfidf_ngram_max": 2,
+        "svd_components": 100,
+        "pca_components": 100,
+        "logistic_max_iter": 2000
+      }
+    }
+  ]
+}

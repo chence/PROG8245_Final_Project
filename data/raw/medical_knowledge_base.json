@@ -1,0 +1,74 @@
+[
+  {
+    "intent": "Symptom Inquiry",
+    "title": "Common cold pattern",
+    "content": "Common cold symptoms often include sore throat, nasal congestion, sneezing, mild cough, and low-grade fever. Symptoms are usually mild and improve gradually with rest and fluids.",
+    "keywords": ["cold", "sore throat", "runny nose", "mild fever"]
+  },
+  {
+    "intent": "Symptom Inquiry",
+    "title": "Flu-like symptoms",
+    "content": "Flu-like illness can include fever, body aches, fatigue, cough, headache, and sore throat. Educational support should stay general and should not confirm a diagnosis.",
+    "keywords": ["flu", "fatigue", "fever", "body aches"]
+  },
+  {
+    "intent": "Symptom Inquiry",
+    "title": "Congestion and cough",
+    "content": "Congestion, mucus, and cough can happen with viral upper respiratory infections. Tracking worsening breathing difficulty, persistent high fever, or chest pain is important.",
+    "keywords": ["congestion", "mucus", "cough", "viral infection"]
+  },
+  {
+    "intent": "Self-Care Advice",
+    "title": "Hydration and rest",
+    "content": "For mild symptoms, general self-care includes resting, drinking fluids, using warm liquids for throat comfort, and monitoring whether symptoms improve over the next few days.",
+    "keywords": ["rest", "hydration", "warm fluids"]
+  },
+  {
+    "intent": "Self-Care Advice",
+    "title": "Managing a sore throat",
+    "content": "General sore throat self-care may include fluids, humidified air, lozenges if appropriate, and avoiding irritants like smoke. Persistent or severe symptoms need professional review.",
+    "keywords": ["sore throat", "lozenges", "humidified air"]
+  },
+  {
+    "intent": "Self-Care Advice",
+    "title": "Monitoring mild respiratory symptoms",
+    "content": "Mild respiratory symptoms can be monitored by watching duration, checking whether breathing becomes harder, and seeking help if symptoms intensify instead of improving.",
+    "keywords": ["monitoring", "respiratory", "symptoms", "duration"]
+  },
+  {
+    "intent": "Medication Question",
+    "title": "Over-the-counter medication caution",
+    "content": "General information about over-the-counter products should stress label reading, age limits, ingredient overlap, and asking a pharmacist or clinician when unsure.",
+    "keywords": ["OTC", "medication", "dose", "label"]
+  },
+  {
+    "intent": "Medication Question",
+    "title": "Cold medicine combinations",
+    "content": "Combination cold medicines can contain overlapping pain relievers, decongestants, or cough suppressants. People should avoid doubling ingredients unintentionally.",
+    "keywords": ["combination medicine", "ingredients", "pain reliever"]
+  },
+  {
+    "intent": "Medication Question",
+    "title": "Medication questions are non-diagnostic",
+    "content": "MediChat can only give general medication safety information. It should not tell the user what they personally should take or confirm that a medication is appropriate for them.",
+    "keywords": ["pharmacist", "safety", "non-diagnostic"]
+  },
+  {
+    "intent": "Seek Medical Help",
+    "title": "Urgent respiratory warning signs",
+    "content": "Shortness of breath, chest pain, bluish lips, confusion, or rapidly worsening symptoms are urgent warning signs and should prompt immediate medical attention.",
+    "keywords": ["shortness of breath", "urgent", "chest pain"]
+  },
+  {
+    "intent": "Seek Medical Help",
+    "title": "When to contact a clinician",
+    "content": "A clinician should be contacted when fever is persistent, symptoms are worsening, coughing is severe or prolonged, or the person is worried about dehydration or breathing changes.",
+    "keywords": ["persistent fever", "worsening symptoms", "clinician"]
+  },
+  {
+    "intent": "General",
+    "title": "Project safety scope",
+    "content": "This chatbot provides general educational medical information only. It does not diagnose, prescribe, or replace licensed professional care.",
+    "keywords": ["safety", "scope", "educational", "not diagnosis"]
+  }
+]
